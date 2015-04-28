@@ -13,7 +13,6 @@ namespace DiplomaOscil
         {
             foreach (bool b in bits)
                 s.Write(b ? 1 : 0);
-            s.WriteLine("\n");
         }
         static void WriteBits(BitArray bits)
         {
@@ -24,7 +23,9 @@ namespace DiplomaOscil
        
         static void Main()
         {
-            double workTime = 1000;
+            Console.Title = "Super-mega Oscilator-generator v0.666";
+            Console.WriteLine("Input sequence length:");
+            int length = Convert.ToInt32(Console.ReadLine());
             double freq = 0.1;
             StreamReader r = new StreamReader("input.txt");
             int cq = Convert.ToInt32(r.ReadLine());
@@ -41,23 +42,45 @@ namespace DiplomaOscil
             StreamWriter[] streamwritersB = new StreamWriter[cq];
             Oscil[] oscils = new Oscil[cq];
             BitArray[] bas = new BitArray[cq];
+            Directory.CreateDirectory("takts");
+            Directory.CreateDirectory("bit");
             for (int i = 0; i < cq; ++i)
             {
-                streamwriters[i] = new StreamWriter("out" + (i + 1) + ".txt");
-                streamwritersB[i] = new StreamWriter("bits" + (i + 1) + ".txt");
-                oscils[i] = new Oscil(workTime, ts[i], sigs[i], freq);
-                bas[i] = oscils[i].Oscilate(streamwriters[i]);
-                WriteBitsFile(bas[i], streamwritersB[i]);
-                streamwriters[i].Close();
+                streamwriters[i] = new StreamWriter("takts\\out" + (i + 1) + ".txt");
+                streamwritersB[i] = new StreamWriter("bit\\bits" + (i + 1) + ".txt");
+                oscils[i] = new Oscil(ts[i], sigs[i], freq);
+                try
+                {
+                    Console.Title = "Super-mega Oscilator-generator v0.666 -- doing oscil #" + (i+1);
+                    bas[i] = oscils[i].Oscilate(streamwriters[i], length);
+                    Console.WriteLine("Oscillator #" + (i + 1) + " done!");
+                    WriteBitsFile(bas[i], streamwritersB[i]);
+                }
+                catch(Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    Console.Beep();
+                    Console.WriteLine("Press any key to exit...");
+                    Console.ReadKey();
+                    return;
+                }
+                finally
+                {
+                    streamwriters[i].Close();
+                    streamwritersB[i].Close();
+                }                                           
             }
-            Console.WriteLine("==========Results after Xor=========");
+            Console.Beep();
+            Console.Title = "Super-mega Oscilator-generator v0.666";
+            //Console.WriteLine("==========Results after Xor=========");
             BitArray res = new BitArray(bas[0]);
             for (int i = 1; i < cq; ++i)
             {
                 res = res.Xor(bas[i]);
             }
             StreamWriter asd = new StreamWriter("seq.txt");
-            WriteBits(res);
+            //WriteBits(res);
+            Console.WriteLine("Result sequence is ready!");
             WriteBitsFile(res, asd);
             asd.Close();
 
@@ -69,7 +92,8 @@ namespace DiplomaOscil
             Console.WriteLine("===========ChiSq-6===========");                   
             int N = res.Length;
             Dictionary<string, int> mainDict = new Dictionary<string, int>();
-            Console.WriteLine("Результирующая последовательность:");
+            Console.WriteLine("Result sequence:");
+            Console.WriteLine();
             mainDict = Tests.ChiSq(N, 0.05, res);
             Console.WriteLine();
 
@@ -103,8 +127,8 @@ namespace DiplomaOscil
             fr.WriteLine("\\end{longtable}");
             fr.Close();
             
-            Console.WriteLine("Пресс ани кей ту континью...");
-            Console.ReadLine();
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey();
         }
     }
 }
