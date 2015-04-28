@@ -39,9 +39,13 @@ namespace TestingLib
                 while (s > 1 || s == 0);
                 r = Math.Sqrt(-2 * Math.Log(s) / s);
                 array[i] = m + sigma * x * r;
+                if (array[i] <= 0)
+                    throw new Exception("Логическая ошибка в моделировании осциллятора, проверьте входные параметры");
                 if (i < n - 1)
                 {
                     array[i + 1] = m + sigma * y * r;
+                    if (array[i+1] <= 0)
+                        throw new Exception("Логическая ошибка в моделировании осциллятора, проверьте входные параметры");
                 }
             }
             return array;
@@ -52,12 +56,11 @@ namespace TestingLib
     /// Класс, моделирующий осциллятор
     /// </summary>
     public class Oscil
-    {
-        double workTime, freq;
+    {        
+        double freq;
         public double time, sigma;
-        public Oscil(double w_t, double t, double sigma, double freq)
-        {
-            this.workTime = w_t;
+        public Oscil(double t, double sigma, double freq)
+        {            
             this.time = t;
             this.sigma = sigma;
             this.freq = freq;
@@ -90,9 +93,11 @@ namespace TestingLib
         /// Метод моделирования процесса осциллирования.
         /// </summary>
         /// <param name="str">Поток для записи длин тактов</param>
+        /// <param name="length">Длина выходной последовательности</param>
         /// <returns>Массив битов, выданный осциллятором</returns>
-        public BitArray Oscilate(StreamWriter str)
+        public BitArray Oscilate(StreamWriter str, int length)
         {
+            double workTime = length * freq;
             Gauss gen = new Gauss(time, sigma);
             int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше?
             double[] ar = gen.GenArray(n);
@@ -133,8 +138,9 @@ namespace TestingLib
 
 
         //working on IT
-        public BitArray IntelOscillate()
+        public BitArray IntelOscillate(int length)
         {
+            double workTime = length * freq;
             Gauss gen = new Gauss(time, sigma);
             int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше?
             double[] ar = gen.GenArray(n);
@@ -158,7 +164,7 @@ namespace TestingLib
                 }
             }
 
-            int fast_n = (int)Math.Ceiling(workTime / freq);
+            int fast_n = length;
             double[] fast_takts = new double[fast_n];
             fast_takts[0] = 0;
             for (int k = 1; k < fast_n; ++k)
