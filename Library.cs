@@ -71,17 +71,18 @@ namespace TestingLib
         /// <param name="r">Величина</param>
         /// <param name="a">Массив с границами интервалов (должен быть упорядоченным)</param>
         /// <returns>Номер интервала (нумерация с 1)</returns>
-        static int FindRead(double r, double[] a)
+        static int FindRead(double r, double[] a, ref int where)
         {
             if (r == 0)
                 return 1;
             int num = -1;
-            int i = 1;
+            int i = where;
             while (i < a.Length)
             {
                 if ((a[i - 1] < r) && (a[i] >= r))
                 {
                     num = i;
+                    where = i;
                     break;
                 }
                 else
@@ -113,14 +114,14 @@ namespace TestingLib
                 if (takts[i] > workTime)
                     break;
             }
-
             double now = freq;                      //частота считываний
-            int count = (int)(workTime / freq);
+            int count = length;
             bool[] bits = new bool[count];
             int pos;
+            int where = 1;
             for (int j = 0; j < count; ++j)
             {
-                pos = FindRead(now, takts);
+                pos = FindRead(now, takts, ref where);
                 if (now <= takts[pos] - (takts[pos] - takts[pos - 1]) / 2)
                     bits[j] = false;
                 else
@@ -147,16 +148,14 @@ namespace TestingLib
                     Array.Resize(ref takts, i + 1);
                     break;
                 }
-            }
-            
-            double now = freq;                      //частота считываний
-            //int count = (int)(workTime / freq);
+            }            
+            double now = freq;                      //частота считываний            
             int count = length;
             bool[] bits = new bool[count];
-            int pos;
+            int pos, where=1;
             for (int j = 0; j < count; ++j)
             {
-                pos = FindRead(now, takts);
+                pos = FindRead(now, takts, ref where);
                 if (now <= takts[pos] - (takts[pos] - takts[pos - 1]) / 2)
                     bits[j] = false;
                 else
@@ -166,21 +165,15 @@ namespace TestingLib
             BitArray osc = new BitArray(bits);
             return osc;
         }
-
-
+        
         //working on IT
         public BitArray IntelOscillate(int length)
         {
             double workTime = length * freq;
             Gauss gen = new Gauss(time, sigma);
-            int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше?
+            int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше
             double[] ar = gen.GenArray(n);
             double[] takts = new double[n];
-
-
-            //опасная штука, что если в ar[] затесались отрицательные величины?
-
-
             takts[0] = ar[0];
             for (int i = 1; i < takts.Length; ++i)
             {
@@ -194,7 +187,6 @@ namespace TestingLib
                     break;
                 }
             }
-
             int fast_n = length;
             double[] fast_takts = new double[fast_n];
             fast_takts[0] = 0;
@@ -206,10 +198,11 @@ namespace TestingLib
             int count = takts.Length;
             bool[] bits = new bool[count];
             int pos;
+            int where = 1;
             for (int j = 0; j < count; ++j)
             {
                 now = takts[j];
-                pos = FindRead(now, fast_takts);
+                pos = FindRead(now, fast_takts, ref where);
                 if (now <= fast_takts[pos] - freq / 2)
                     bits[j] = false;
                 else
