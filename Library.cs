@@ -99,14 +99,9 @@ namespace TestingLib
         {
             double workTime = length * freq;
             Gauss gen = new Gauss(time, sigma);
-            int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше?
+            int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше
             double[] ar = gen.GenArray(n);
             double[] takts = new double[n + 1];
-
-
-            //опасная штука, что если в ar[] затесались отрицательные величины?
-
-
             takts[0] = 0;
             for (int i = 1; i < takts.Length; ++i)
             {
@@ -121,6 +116,42 @@ namespace TestingLib
 
             double now = freq;                      //частота считываний
             int count = (int)(workTime / freq);
+            bool[] bits = new bool[count];
+            int pos;
+            for (int j = 0; j < count; ++j)
+            {
+                pos = FindRead(now, takts);
+                if (now <= takts[pos] - (takts[pos] - takts[pos - 1]) / 2)
+                    bits[j] = false;
+                else
+                    bits[j] = true;
+                now += freq;
+            }
+            BitArray osc = new BitArray(bits);
+            return osc;
+        }
+
+        public BitArray Oscilate(int length)
+        {
+            double workTime = length * freq;
+            Gauss gen = new Gauss(time, sigma);
+            int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше
+            double[] ar = gen.GenArray(n);
+            double[] takts = new double[n + 1];
+            takts[0] = 0;
+            for (int i = 1; i < takts.Length; ++i)
+            {
+                takts[i] = takts[i - 1] + ar[i - 1];
+                if (takts[i] > workTime)
+                {
+                    Array.Resize(ref takts, i + 1);
+                    break;
+                }
+            }
+            
+            double now = freq;                      //частота считываний
+            //int count = (int)(workTime / freq);
+            int count = length;
             bool[] bits = new bool[count];
             int pos;
             for (int j = 0; j < count; ++j)
