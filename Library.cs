@@ -102,6 +102,8 @@ namespace TestingLib
             double workTime = length * freq;
             Gauss gen = new Gauss(time, sigma);
             int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше
+            if (n == 0)
+                throw new Exception("Невозможно смоделировать последовательность с заданными параметрами (IMPOSSIBRU)");
             double[] ar = gen.GenArray(n);
             double[] takts = new double[n + 1];
             takts[0] = 0;
@@ -145,6 +147,8 @@ namespace TestingLib
             double workTime = length * freq;
             Gauss gen = new Gauss(time, sigma);
             int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше
+            if (n == 0)
+                throw new Exception("Невозможно смоделировать последовательность с заданными параметрами (IMPOSSIBRU)");
             double[] ar = gen.GenArray(n);
             double[] takts = new double[n + 1];
             takts[0] = 0;
@@ -179,7 +183,9 @@ namespace TestingLib
         {
             double workTime = length * freq;
             Gauss gen = new Gauss(time, sigma);
-            int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше
+            int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше                
+            if (n==0)
+                throw new Exception("Невозможно смоделировать последовательность с заданными параметрами (IMPOSSIBRU)");
             double[] ar = gen.GenArray(n);
             double[] takts = new double[n];
             takts[0] = ar[0];
@@ -188,7 +194,7 @@ namespace TestingLib
                 takts[i] = takts[i - 1] + ar[i];
                 if (takts[i] > workTime)
                 {
-                    Array.Resize(ref takts, i + 1);
+                    Array.Resize(ref takts, i);
                     break;
                 }
             }            
