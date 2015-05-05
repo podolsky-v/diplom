@@ -66,10 +66,11 @@ namespace TestingLib
             this.freq = freq;
         }
         /// <summary>
-        /// Поиск интервала, в который попадает величина
+        /// Поиск интервала, в который попадает величина, начиная с определенной позиции в массиве
         /// </summary>
         /// <param name="r">Величина</param>
         /// <param name="a">Массив с границами интервалов (должен быть упорядоченным)</param>
+        /// <param name="where">Указатель на текущую позицию в массиве</param>
         /// <returns>Номер интервала (нумерация с 1)</returns>
         static int FindRead(double r, double[] a, ref int where)
         {
@@ -91,7 +92,7 @@ namespace TestingLib
             return num;
         }
         /// <summary>
-        /// Метод моделирования процесса осциллирования.
+        /// Метод моделирования процесса осциллирования с записью в файл значений длин тактов осциллятора
         /// </summary>
         /// <param name="str">Поток для записи длин тактов</param>
         /// <param name="length">Длина выходной последовательности</param>
@@ -107,12 +108,15 @@ namespace TestingLib
             for (int i = 1; i < takts.Length; ++i)
             {
                 takts[i] = takts[i - 1] + ar[i - 1];
+                if (takts[i] > workTime)
+                {
+                    Array.Resize(ref takts, i + 1);
+                    break;
+                }
             }
             for (int i = 1; i < takts.Length; ++i)
             {
-                str.WriteLine(i + ") " + takts[i - 1] + "+" + (ar[i - 1]) + "=" + takts[i]);
-                if (takts[i] > workTime)
-                    break;
+                str.WriteLine(i + ") " + takts[i - 1] + "+" + (ar[i - 1]) + "=" + takts[i]);                
             }
             double now = freq;                      //частота считываний
             int count = length;
@@ -131,7 +135,11 @@ namespace TestingLib
             BitArray osc = new BitArray(bits);
             return osc;
         }
-
+        /// <summary>
+        /// Метод моделирования процесса осциллирования
+        /// </summary>        
+        /// <param name="length">Длина выходной последовательности</param>
+        /// <returns>Массив битов, выданный осциллятором</returns>
         public BitArray Oscilate(int length)
         {
             double workTime = length * freq;
@@ -178,15 +186,12 @@ namespace TestingLib
             for (int i = 1; i < takts.Length; ++i)
             {
                 takts[i] = takts[i - 1] + ar[i];
-            }
-            for (int i = 1; i < takts.Length; ++i)
-            {
                 if (takts[i] > workTime)
                 {
-                    Array.Resize(ref takts, i);
+                    Array.Resize(ref takts, i + 1);
                     break;
                 }
-            }
+            }            
             int fast_n = length;
             double[] fast_takts = new double[fast_n];
             fast_takts[0] = 0;
@@ -246,7 +251,7 @@ namespace TestingLib
         /// Тест частот (монобит)
         /// </summary>
         /// <param name="res">Битовая последовательность</param>
-        /// <param name="alpha">Уровень значимости</param>
+        /// <param name="alpha">Уровень значимости, рекомендован 0.01</param>
         public static void MonoBit(BitArray res, double alpha)
         {
             double ones = 0;
@@ -257,11 +262,19 @@ namespace TestingLib
             }
             double zeros = res.Length - (int)ones;
             double pval = FrequencyTest(ones - zeros, res.Length);
-            Console.WriteLine(ones / res.Length + "   " + pval);
+            Console.WriteLine("Percentage of 1: " + ones / res.Length + "   p-value: " + pval);
             if (pval < alpha) //для этого теста обычно берут alpha=0.01 
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("H1 monobit");
+                Console.ResetColor();
+            }                
             else
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("H0 monobit");
+                Console.ResetColor();
+            }                
         }
 
         /// <summary>
@@ -321,7 +334,6 @@ namespace TestingLib
                 f1 = 1.0 / f;
                 t = gcdfi(p);
                 f2 = Math.Sqrt(f1) * t;
-
                 if (n <= (2 + (int)(4.0 * Math.Abs(t))))
                 {
                     ch1 = (((((((c[0] * f2 + c[1]) * f2 + c[2]) * f2 + c[3]) * f2 + c[4]) * f2 + c[5]) * f2
@@ -359,23 +371,26 @@ namespace TestingLib
             {
                 grams[a] = Convert.ToString(a, 2).PadLeft(6, '0');
             }
-            //StreamReader gram = new StreamReader("grams.b");
-            //for (int i = 0; i < 64; ++i)
-            //{
-            //    grams[i] = gram.ReadLine();
-            //}
-            //gram.Close();
         }
 
-        private static string SixGr(bool[] mas)
+        private static string BoolArToString(bool[] mas)
         {
             string str = "";
             for (int i = 0; i < mas.Length; ++i)
                 str += (mas[i] == true ? 1 : 0);
             return str;
         }
+        /// <summary>
+        /// Тест хи-квадрат по шестиграммам
+        /// </summary>
+        /// <param name="len">Длина тестируемой подпоследовательности</param>
+        /// <param name="alpha">Уровень значимости</param>
+        /// <param name="arr">Тестируемый массив</param>
+        /// <returns>Словарь частот шестиграмм</returns>
         public static Dictionary<string, int> ChiSq(int len, double alpha, BitArray arr)
         {
+            //if (len < arr.Length)
+            //    throw new Exception("Длина подпоследовательности больше длины последовательности");
             Dictionary<string, int> dict = new Dictionary<string, int>();
             LoadDictionary(dict);
             int count = len / 6;
@@ -385,7 +400,7 @@ namespace TestingLib
             {
                 for (int i = 0; i < 6; ++i)
                     mas[i] = arr[6 * k + i];
-                s = SixGr(mas);
+                s = BoolArToString(mas);
                 if (dict.ContainsKey(s))
                     dict[s]++;
                 else
@@ -405,8 +420,17 @@ namespace TestingLib
             Console.WriteLine("Delta= " + delta2);
             Console.WriteLine("alpha=" + alpha);
             if (sum < delta2)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("H0 (ChiSq < delta, гипотеза о случайности принята)");
-            else Console.WriteLine("H1 (ChiSq > delta, гипотеза о случайности  не принята)");
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("H1 (ChiSq > delta, гипотеза о случайности  не принята)");
+                Console.ResetColor();
+            }
             return dict;
         }
     }
