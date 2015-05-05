@@ -20,12 +20,12 @@ namespace DiplomaOscil
                 Console.Write(b ? 1 : 0);
             Console.WriteLine("\n");
         }
-
-        static void Main()
+        static void ManyOs()
         {
-            Console.Title = "Super-mega Oscilator-generator v0.666";
             Console.WriteLine("Input sequence length:");
             int length = Convert.ToInt32(Console.ReadLine());
+
+            //START MANY OSCILATORS
             double freq = 0.5;
             StreamReader r = new StreamReader("input.txt");
             int cq = Convert.ToInt32(r.ReadLine());
@@ -62,8 +62,7 @@ namespace DiplomaOscil
                 {
                     Console.WriteLine(e.Message);
                     Console.Beep();
-                    Console.WriteLine("Press any key to exit...");
-                    Console.ReadKey();
+                    Console.WriteLine("Завершение работы функции");                   
                     return;
                 }
                 finally
@@ -72,26 +71,28 @@ namespace DiplomaOscil
                     //streamwritersB[i].Close();
                 }
             }
-            Console.Beep();
-            Console.Title = "Super-mega Oscilator-generator v0.666";
             //Console.WriteLine("==========Results after Xor=========");
             BitArray res = new BitArray(bas[0]);
             for (int i = 1; i < cq; ++i)
             {
                 res = res.Xor(bas[i]);
             }
-            Console.WriteLine("Result sequence is ready!");
             DateTime finish = DateTime.Now;
+            Console.Title = "Super-mega Oscilator-generator v0.666";
+            Console.WriteLine("Result sequence is ready!");
+            Console.Beep();
             StreamWriter asd = new StreamWriter("seq.txt");
             //WriteBits(res);            
             WriteBitsFile(res, asd);
-            asd.Close();            
+            asd.Close();
             TimeSpan genTime = finish - start;
             Console.WriteLine();
-            Console.ForegroundColor = ConsoleColor.Red;
+            Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("The approximate speed of generation was {0:f3} bps", length / genTime.TotalSeconds);
             Console.WriteLine();
             Console.ResetColor();
+
+            Console.WriteLine("***HEALTH TESTS***");
             //MONOBIT
             Console.WriteLine("===========MONOBIT===========");
             Tests.MonoBit(res, 0.01);
@@ -99,11 +100,6 @@ namespace DiplomaOscil
             //ChiSq-6
             Console.WriteLine("===========ChiSq-6===========");
             int N = res.Length;
-            Dictionary<string, int> mainDict = new Dictionary<string, int>();
-            Console.WriteLine("Result sequence:");
-            Console.WriteLine();
-            mainDict = Tests.ChiSq(N, 0.05, res);
-            Console.WriteLine();
 
             Dictionary<string, int>[] suppDicts = new Dictionary<string, int>[cq];
             for (int j = 0; j < cq; ++j)
@@ -114,6 +110,13 @@ namespace DiplomaOscil
                 Console.WriteLine();
             }
 
+            Dictionary<string, int> mainDict = new Dictionary<string, int>();
+            Console.WriteLine("Result sequence:");
+            Console.WriteLine();
+            mainDict = Tests.ChiSq(N, 0.05, res);
+            Console.WriteLine();
+
+            //таблица для ТеХ'а
             StreamWriter fr = new StreamWriter("tab.txt");
             fr.Write("\\begin{longtable}{|l|");
             for (int j = 0; j < cq; ++j)
@@ -134,9 +137,67 @@ namespace DiplomaOscil
             }
             fr.WriteLine("\\end{longtable}");
             fr.Close();
+            //END MANY OSCILLATORS
+        }
 
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
+        static void IntelOs()
+        {
+            try
+            {
+                Console.WriteLine("Input sequence length:");
+                int length = Convert.ToInt32(Console.ReadLine());
+                Oscil a = new Oscil(1.0, 0.16, 0.01);
+                BitArray res = a.IntelOscillate(length);
+                Tests.MonoBit(res, 0.01);
+                int N = res.Length;
+                Dictionary<string, int> mainDict = new Dictionary<string, int>();
+                Console.WriteLine("Результирующая последовательность:");
+                mainDict = Tests.ChiSq(N, 0.05, res);
+                Console.WriteLine();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.Beep();
+                Console.WriteLine("Завершение работы функции.");
+                return;
+            }
+
+        }
+
+        static void Main()
+        {
+            Console.Title = "Super-mega Oscilator-generator v0.666";
+            Console.WriteLine("Добро пожаловать в программу моделирования генераторов случайных чисел");
+            string mode;
+
+            while (true)
+            {
+                Console.WriteLine("МЕНЮ\n1. Генератор many-XOR\n2. Генератор Intel\n0. Выход");
+                mode = Console.ReadLine();
+                switch (mode)
+                {
+                    case "1":
+                        ManyOs();
+                        Console.WriteLine("Press any key to continue...");
+                        Console.ReadLine();
+                        Console.Clear();
+                        break;
+                    case "2":
+                        IntelOs();
+                        Console.WriteLine("Press any key to continue...");
+                        Console.ReadLine();
+                        Console.Clear();
+                        break;
+                    case "0":
+                        Console.WriteLine("Инициирован выход из программы\nPress any key to exit...");
+                        Console.ReadKey();
+                        return;
+                    default:
+                        Console.WriteLine("Неправильно набран номер");
+                        break;
+                }
+            }
         }
     }
 }
