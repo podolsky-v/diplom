@@ -103,7 +103,7 @@ namespace TestingLib
             Gauss gen = new Gauss(time, sigma);
             int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше
             if (n == 0)
-                throw new Exception("Невозможно смоделировать последовательность с заданными параметрами (IMPOSSIBRU)");
+                throw new Exception("Невозможно смоделировать последовательность с заданными параметрами");
             double[] ar = gen.GenArray(n);
             double[] takts = new double[n + 1];
             takts[0] = 0;
@@ -148,7 +148,7 @@ namespace TestingLib
             Gauss gen = new Gauss(time, sigma);
             int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше
             if (n == 0)
-                throw new Exception("Невозможно смоделировать последовательность с заданными параметрами (IMPOSSIBRU)");
+                throw new Exception("Невозможно смоделировать последовательность с заданными параметрами");
             double[] ar = gen.GenArray(n);
             double[] takts = new double[n + 1];
             takts[0] = 0;
@@ -178,43 +178,30 @@ namespace TestingLib
             return osc;
         }
         
-        //working on IT
+        //working on IT НЕ ХВАТАЕТ ПАМЯТИ ДЛЯ МАЛЕНЬКИХ ЧАСТОТ
         public BitArray IntelOscillate(int length)
         {
-            double workTime = length * freq;
+            //double workTime = length * time * 2;
             Gauss gen = new Gauss(time, sigma);
-            int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше                
-            if (n==0)
-                throw new Exception("Невозможно смоделировать последовательность с заданными параметрами (IMPOSSIBRU)");
+            int n = length;                
             double[] ar = gen.GenArray(n);
             double[] takts = new double[n];
             takts[0] = ar[0];
-            for (int i = 1; i < takts.Length; ++i)
+            for (int i = 1; i < n; ++i)
             {
-                takts[i] = takts[i - 1] + ar[i];
-                if (takts[i] > workTime)
-                {
-                    Array.Resize(ref takts, i);
-                    break;
-                }
+                takts[i] = takts[i - 1] + ar[i];                
             }            
-            int fast_n = length;
-            double[] fast_takts = new double[fast_n];
-            fast_takts[0] = 0;
-            for (int k = 1; k < fast_n; ++k)
-            {
-                fast_takts[k] = fast_takts[k - 1] + freq;
-            }
+            
             double now;                      
-            int count = takts.Length;
+            int count = length;
             bool[] bits = new bool[count];
             int pos;
-            int where = 1;
+            
             for (int j = 0; j < count; ++j)
             {
                 now = takts[j];
-                pos = FindRead(now, fast_takts, ref where);
-                if (now <= fast_takts[pos] - freq / 2)
+                pos = (int)(now / freq) + 1;
+                if (now <= freq * pos - freq / 2)
                     bits[j] = false;
                 else
                     bits[j] = true;
