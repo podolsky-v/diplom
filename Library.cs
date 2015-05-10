@@ -66,22 +66,24 @@ namespace TestingLib
             this.freq = freq;
         }
         /// <summary>
-        /// Поиск интервала, в который попадает величина
+        /// Поиск интервала, в который попадает величина, начиная с определенной позиции в массиве
         /// </summary>
         /// <param name="r">Величина</param>
         /// <param name="a">Массив с границами интервалов (должен быть упорядоченным)</param>
+        /// <param name="where">Указатель на текущую позицию в массиве</param>
         /// <returns>Номер интервала (нумерация с 1)</returns>
-        static int FindRead(double r, double[] a)
+        static int FindRead(double r, double[] a, ref int where)
         {
             if (r == 0)
                 return 1;
             int num = -1;
-            int i = 1;
+            int i = where;
             while (i < a.Length)
             {
                 if ((a[i - 1] < r) && (a[i] >= r))
                 {
                     num = i;
+                    where = i;
                     break;
                 }
                 else
@@ -90,7 +92,7 @@ namespace TestingLib
             return num;
         }
         /// <summary>
-        /// Метод моделирования процесса осциллирования.
+        /// Метод моделирования процесса осциллирования с записью в файл значений длин тактов осциллятора
         /// </summary>
         /// <param name="str">Поток для записи длин тактов</param>
         /// <param name="length">Длина выходной последовательности</param>
@@ -100,42 +102,8 @@ namespace TestingLib
             double workTime = length * freq;
             Gauss gen = new Gauss(time, sigma);
             int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше
-            double[] ar = gen.GenArray(n);
-            double[] takts = new double[n + 1];
-            takts[0] = 0;
-            for (int i = 1; i < takts.Length; ++i)
-            {
-                takts[i] = takts[i - 1] + ar[i - 1];
-            }
-            for (int i = 1; i < takts.Length; ++i)
-            {
-                str.WriteLine(i + ") " + takts[i - 1] + "+" + (ar[i - 1]) + "=" + takts[i]);
-                if (takts[i] > workTime)
-                    break;
-            }
-
-            double now = freq;                      //частота считываний
-            int count = (int)(workTime / freq);
-            bool[] bits = new bool[count];
-            int pos;
-            for (int j = 0; j < count; ++j)
-            {
-                pos = FindRead(now, takts);
-                if (now <= takts[pos] - (takts[pos] - takts[pos - 1]) / 2)
-                    bits[j] = false;
-                else
-                    bits[j] = true;
-                now += freq;
-            }
-            BitArray osc = new BitArray(bits);
-            return osc;
-        }
-
-        public BitArray Oscilate(int length)
-        {
-            double workTime = length * freq;
-            Gauss gen = new Gauss(time, sigma);
-            int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше
+            if (n == 0)
+                throw new Exception("Невозможно смоделировать последовательность с заданными параметрами (IMPOSSIBRU)");
             double[] ar = gen.GenArray(n);
             double[] takts = new double[n + 1];
             takts[0] = 0;
@@ -148,15 +116,18 @@ namespace TestingLib
                     break;
                 }
             }
-            
+            for (int i = 1; i < takts.Length; ++i)
+            {
+                str.WriteLine(i + ") " + takts[i - 1] + "+" + (ar[i - 1]) + "=" + takts[i]);                
+            }
             double now = freq;                      //частота считываний
-            //int count = (int)(workTime / freq);
             int count = length;
             bool[] bits = new bool[count];
             int pos;
+            int where = 1;
             for (int j = 0; j < count; ++j)
             {
-                pos = FindRead(now, takts);
+                pos = FindRead(now, takts, ref where);
                 if (now <= takts[pos] - (takts[pos] - takts[pos - 1]) / 2)
                     bits[j] = false;
                 else
@@ -166,35 +137,67 @@ namespace TestingLib
             BitArray osc = new BitArray(bits);
             return osc;
         }
-
-
+        /// <summary>
+        /// Метод моделирования процесса осциллирования
+        /// </summary>        
+        /// <param name="length">Длина выходной последовательности</param>
+        /// <returns>Массив битов, выданный осциллятором</returns>
+        public BitArray Oscilate(int length)
+        {
+            double workTime = length * freq;
+            Gauss gen = new Gauss(time, sigma);
+            int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше
+            if (n == 0)
+                throw new Exception("Невозможно смоделировать последовательность с заданными параметрами (IMPOSSIBRU)");
+            double[] ar = gen.GenArray(n);
+            double[] takts = new double[n + 1];
+            takts[0] = 0;
+            for (int i = 1; i < takts.Length; ++i)
+            {
+                takts[i] = takts[i - 1] + ar[i - 1];
+                if (takts[i] > workTime)
+                {
+                    Array.Resize(ref takts, i + 1);
+                    break;
+                }
+            }            
+            double now = freq;                      //частота считываний            
+            int count = length;
+            bool[] bits = new bool[count];
+            int pos, where=1;
+            for (int j = 0; j < count; ++j)
+            {
+                pos = FindRead(now, takts, ref where);
+                if (now <= takts[pos] - (takts[pos] - takts[pos - 1]) / 2)
+                    bits[j] = false;
+                else
+                    bits[j] = true;
+                now += freq;
+            }
+            BitArray osc = new BitArray(bits);
+            return osc;
+        }
+        
         //working on IT
         public BitArray IntelOscillate(int length)
         {
             double workTime = length * freq;
             Gauss gen = new Gauss(time, sigma);
-            int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше?
+            int n = (int)(workTime / time) * 2;   //берётся с запасом, в два раза больше                
+            if (n==0)
+                throw new Exception("Невозможно смоделировать последовательность с заданными параметрами (IMPOSSIBRU)");
             double[] ar = gen.GenArray(n);
             double[] takts = new double[n];
-
-
-            //опасная штука, что если в ar[] затесались отрицательные величины?
-
-
             takts[0] = ar[0];
             for (int i = 1; i < takts.Length; ++i)
             {
                 takts[i] = takts[i - 1] + ar[i];
-            }
-            for (int i = 1; i < takts.Length; ++i)
-            {
                 if (takts[i] > workTime)
                 {
                     Array.Resize(ref takts, i);
                     break;
                 }
-            }
-
+            }            
             int fast_n = length;
             double[] fast_takts = new double[fast_n];
             fast_takts[0] = 0;
@@ -206,10 +209,11 @@ namespace TestingLib
             int count = takts.Length;
             bool[] bits = new bool[count];
             int pos;
+            int where = 1;
             for (int j = 0; j < count; ++j)
             {
                 now = takts[j];
-                pos = FindRead(now, fast_takts);
+                pos = FindRead(now, fast_takts, ref where);
                 if (now <= fast_takts[pos] - freq / 2)
                     bits[j] = false;
                 else
@@ -253,7 +257,7 @@ namespace TestingLib
         /// Тест частот (монобит)
         /// </summary>
         /// <param name="res">Битовая последовательность</param>
-        /// <param name="alpha">Уровень значимости</param>
+        /// <param name="alpha">Уровень значимости, рекомендован 0.01</param>
         public static void MonoBit(BitArray res, double alpha)
         {
             double ones = 0;
@@ -264,11 +268,19 @@ namespace TestingLib
             }
             double zeros = res.Length - (int)ones;
             double pval = FrequencyTest(ones - zeros, res.Length);
-            Console.WriteLine(ones / res.Length + "   " + pval);
+            Console.WriteLine("Percentage of 1: " + ones / res.Length + "   p-value: " + pval);
             if (pval < alpha) //для этого теста обычно берут alpha=0.01 
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("H1 monobit");
+                Console.ResetColor();
+            }                
             else
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("H0 monobit");
+                Console.ResetColor();
+            }                
         }
 
         /// <summary>
@@ -328,7 +340,6 @@ namespace TestingLib
                 f1 = 1.0 / f;
                 t = gcdfi(p);
                 f2 = Math.Sqrt(f1) * t;
-
                 if (n <= (2 + (int)(4.0 * Math.Abs(t))))
                 {
                     ch1 = (((((((c[0] * f2 + c[1]) * f2 + c[2]) * f2 + c[3]) * f2 + c[4]) * f2 + c[5]) * f2
@@ -366,23 +377,26 @@ namespace TestingLib
             {
                 grams[a] = Convert.ToString(a, 2).PadLeft(6, '0');
             }
-            //StreamReader gram = new StreamReader("grams.b");
-            //for (int i = 0; i < 64; ++i)
-            //{
-            //    grams[i] = gram.ReadLine();
-            //}
-            //gram.Close();
         }
 
-        private static string SixGr(bool[] mas)
+        private static string BoolArToString(bool[] mas)
         {
             string str = "";
             for (int i = 0; i < mas.Length; ++i)
                 str += (mas[i] == true ? 1 : 0);
             return str;
         }
+        /// <summary>
+        /// Тест хи-квадрат по шестиграммам
+        /// </summary>
+        /// <param name="len">Длина тестируемой подпоследовательности</param>
+        /// <param name="alpha">Уровень значимости</param>
+        /// <param name="arr">Тестируемый массив</param>
+        /// <returns>Словарь частот шестиграмм</returns>
         public static Dictionary<string, int> ChiSq(int len, double alpha, BitArray arr)
         {
+            //if (len < arr.Length)
+            //    throw new Exception("Длина подпоследовательности больше длины последовательности");
             Dictionary<string, int> dict = new Dictionary<string, int>();
             LoadDictionary(dict);
             int count = len / 6;
@@ -392,7 +406,7 @@ namespace TestingLib
             {
                 for (int i = 0; i < 6; ++i)
                     mas[i] = arr[6 * k + i];
-                s = SixGr(mas);
+                s = BoolArToString(mas);
                 if (dict.ContainsKey(s))
                     dict[s]++;
                 else
@@ -412,8 +426,17 @@ namespace TestingLib
             Console.WriteLine("Delta= " + delta2);
             Console.WriteLine("alpha=" + alpha);
             if (sum < delta2)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("H0 (ChiSq < delta, гипотеза о случайности принята)");
-            else Console.WriteLine("H1 (ChiSq > delta, гипотеза о случайности  не принята)");
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("H1 (ChiSq > delta, гипотеза о случайности  не принята)");
+                Console.ResetColor();
+            }
             return dict;
         }
     }
