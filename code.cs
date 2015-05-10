@@ -79,8 +79,7 @@ namespace DiplomaOscil
             }
             DateTime finish = DateTime.Now;
             Console.Title = "Super-mega Oscilator-generator v0.666";
-            Console.WriteLine("Result sequence is ready!");
-            Console.Beep();
+            Console.WriteLine("Result sequence of {0} bits is ready! Writing to file...", res.Length);
             StreamWriter asd = new StreamWriter("seq.txt");
             //WriteBits(res);            
             WriteBitsFile(res, asd);
@@ -148,6 +147,11 @@ namespace DiplomaOscil
                 int length = Convert.ToInt32(Console.ReadLine());
                 Oscil a = new Oscil(1.0, 0.16, 0.01);
                 BitArray res = a.IntelOscillate(length);
+                Console.WriteLine("Result sequence of {0} bits is ready! Writing to file...", res.Length);
+                StreamWriter asd = new StreamWriter("seqI.txt");
+                //WriteBits(res);            
+                WriteBitsFile(res, asd);
+                asd.Close();
                 Tests.MonoBit(res, 0.01);
                 int N = res.Length;
                 Dictionary<string, int> mainDict = new Dictionary<string, int>();
