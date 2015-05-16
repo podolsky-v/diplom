@@ -178,7 +178,11 @@ namespace TestingLib
             return osc;
         }
         
-        //working on IT НЕ ХВАТАЕТ ПАМЯТИ ДЛЯ МАЛЕНЬКИХ ЧАСТОТ
+        /// <summary>
+        /// Метод моделирования генератора по двухосцилляторной схеме
+        /// </summary>
+        /// <param name="length">Длина выходной последовательности</param>
+        /// <returns>Массив битов, выданный генератором</returns>
         public BitArray IntelOscillate(int length)
         {
             //double workTime = length * time * 2;
@@ -210,7 +214,9 @@ namespace TestingLib
             return osc;
         }
     }
-
+    /// <summary>
+    /// Набор тестов
+    /// </summary>
     public static class Tests
     {
         // for monobit
@@ -345,6 +351,22 @@ namespace TestingLib
             }
         }
 
+        public static int BlockSize(BitArray res)
+        {
+            double ones = 0;
+            for (int i = 0; i < res.Length; ++i)
+            {
+                if (res[i] == true)
+                    ones++;
+            }
+            double zeros = res.Length - (int)ones;
+            double cx = Math.Min(ones, zeros);
+            int k = 2;
+            while (k < 12 && Math.Pow(cx / res.Length, k) > 5 / res.Length)
+                k++;
+            --k;
+            return k;
+        }
         /// <summary>
         /// Метод инициализирует словарь-параметр шестиграммами в качестве ключей.
         /// </summary>
