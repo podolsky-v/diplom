@@ -9,6 +9,7 @@ namespace DiplomaOscil
 {
     class Program
     {
+        static string VER = "v0.3";
         static void WriteBitsFile(BitArray bits, StreamWriter s)
         {
             foreach (bool b in bits)
@@ -64,7 +65,7 @@ namespace DiplomaOscil
                 oscils[i] = new Oscil(ts[i], sigs[i], freq);
                 try
                 {
-                    Console.Title = "Oscilator-generator v0.3 -- doing oscil #" + (i + 1);
+                    Console.Title = "Oscilator-generator " + VER + " -- doing oscil #" + (i + 1);
                     //bas[i] = oscils[i].Oscilate(streamwriters[i], length);
                     bas[i] = oscils[i].Oscilate(length);
                     //Console.WriteLine("Oscillator #" + (i + 1) + " done!");
@@ -90,7 +91,7 @@ namespace DiplomaOscil
                 res = res.Xor(bas[i]);
             }
             DateTime finish = DateTime.Now;
-            Console.Title = "Oscilator-generator v0.3";
+            Console.Title = "Oscilator-generator " + VER;
             Console.WriteLine("Result sequence of {0} bits is ready! Writing to file...", res.Length);
             StreamWriter asd = new StreamWriter("seq" + finish.Hour + "-" + finish.Minute + "-" + finish.Second + ".txt");
             //WriteBits(res);            
@@ -107,7 +108,7 @@ namespace DiplomaOscil
 
             //ChiSq-6
             Console.WriteLine("===========ChiSq-6===========");
-            
+
             Dictionary<string, int>[] suppDicts = new Dictionary<string, int>[cq];
             for (int j = 0; j < cq; ++j)
             {
@@ -126,6 +127,7 @@ namespace DiplomaOscil
             mainDict = Tests.ChiSq(0.05, res);
             Tests.ChiSqK(0.001, res);
             Tests.ChiSqStab(res);
+            Console.WriteLine("Оценка минимальной энтропии: {0:f3} на бит", Tests.MinEntrBound(res));
             //таблица для ТеХ'а
             Console.WriteLine("Создание файла с выходной таблицей...");
             StreamWriter fr = new StreamWriter("ChiSqTabTex.txt");
@@ -191,6 +193,7 @@ namespace DiplomaOscil
                 mainDict = Tests.ChiSq(0.05, res);
                 Tests.ChiSqK(0.001, res);
                 Tests.ChiSqStab(res);
+                Console.WriteLine("Оценка минимальной энтропии: {0:f3} на бит", Tests.MinEntrBound(res));
                 Console.WriteLine();
             }
             catch (Exception e)
@@ -205,7 +208,7 @@ namespace DiplomaOscil
 
         static void Main()
         {
-            Console.Title = "Oscilator-generator v0.3";
+            Console.Title = "Oscilator-generator " + VER;
             Console.WriteLine("Добро пожаловать в программу моделирования генераторов случайных чисел");
             string mode;
 
