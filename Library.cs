@@ -495,6 +495,16 @@ namespace TestingLib
             }
         }
 
+        public static double MinEntrBound(BitArray arr)
+        {
+            int ones = Ones(arr);
+            int Cmax = Math.Max(ones, arr.Length - ones);
+            double pmax = (double)Cmax / arr.Length;
+            double Cbound = Cmax + 2.3 * Math.Sqrt(arr.Length * pmax * (1 - pmax));
+            double H = -Math.Log(Cbound / arr.Length, 2);
+            return Math.Min(1, H);
+        }
+
         /// <summary>
         /// Метод инициализирует словарь-параметр шестиграммами в качестве ключей.
         /// </summary>
