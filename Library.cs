@@ -18,6 +18,7 @@ namespace TestingLib
             this.m = m;
             this.sigma = sigma;
         }
+
         /// <summary>
         /// Метод генерации массива нормально распределенных величин с параметрами объекта
         /// </summary>
@@ -65,6 +66,7 @@ namespace TestingLib
             this.sigma = sigma;
             this.freq = freq;
         }
+
         /// <summary>
         /// Поиск интервала, в который попадает величина, начиная с определенной позиции в массиве
         /// </summary>
@@ -91,6 +93,7 @@ namespace TestingLib
             }
             return num;
         }
+
         /// <summary>
         /// Метод моделирования процесса осциллирования с записью в файл значений длин тактов осциллятора
         /// </summary>
@@ -137,6 +140,7 @@ namespace TestingLib
             BitArray osc = new BitArray(bits);
             return osc;
         }
+
         /// <summary>
         /// Метод моделирования процесса осциллирования
         /// </summary>        
@@ -214,11 +218,14 @@ namespace TestingLib
             return osc;
         }
     }
+
     /// <summary>
     /// Набор тестов
     /// </summary>
     public static class Tests
     {
+        //MONOBIT
+
         // for monobit
         static double FrequencyTest(double sum, long length)
         {
@@ -246,6 +253,7 @@ namespace TestingLib
         {
             return 1 - ErrorFunction(x);
         }
+
         /// <summary>
         /// Тест частот (монобит)
         /// </summary>
@@ -275,6 +283,8 @@ namespace TestingLib
                 Console.ResetColor();
             }                
         }
+
+        //CHISQARE
 
         /// <summary>
         /// Этот метод вычисляет обратную функцию распредения для Гауссовского распределения
@@ -351,27 +361,104 @@ namespace TestingLib
             }
         }
 
-        public static int BlockSize(BitArray res)
+        /// <summary>
+        /// Вес Хэмминга для положительных чисел
+        /// </summary>
+        /// <param name="value">Значение, для которого вычисляется вес</param>
+        /// <returns>Вес</returns        
+        private static int HammingWeight(int value)
         {
-            double ones = 0;
-            for (int i = 0; i < res.Length; ++i)
+            int sum = 0;
+            while (value > 0)
             {
-                if (res[i] == true)
+                sum += value & 0x01;
+                value >>= 1;
+            }
+            return sum;
+        }
+
+        /// <summary>
+        /// Хи-квадрат тест на независимость (из рекомендаций NIST)
+        /// </summary>
+        /// <param name="len">Длина тестируемой подпоследовательности</param>
+        /// <param name="alpha">Уровень значимости</param>
+        /// <param name="arr">Тестируемая последовательность</param>
+        public static void ChiSqK(int len, double alpha, BitArray arr)
+        {
+            //if (len < arr.Length)
+            //    throw new Exception("Длина подпоследовательности больше длины последовательности");
+            
+            //тут определяется длина блоков
+            double ones = 0;
+            for (int i = 0; i < arr.Length; ++i)
+            {
+                if (arr[i] == true)
                     ones++;
             }
-            double zeros = res.Length - (int)ones;
+            double zeros = arr.Length - (int)ones;
             double cx = Math.Min(ones, zeros);
             int k = 2;
-            while (k < 12 && Math.Pow(cx / res.Length, k) > 5 / res.Length)
+            while (k < 12 && Math.Pow(cx / arr.Length, k) > 5 / arr.Length)
                 k++;
-            --k;
-            return k;
+            --k;            
+            
+            //тут создаются словари с текствым представлением всех блоков длины k и с весами Хэмминга для них
+            Dictionary<int, int> hW = new Dictionary<int, int>();
+            Dictionary<string, int> dict = new Dictionary<string, int>();
+            for (int a = 0; a < Math.Pow(2, k); a++)
+            {
+                string blocks = Convert.ToString(a, 2).PadLeft(k, '0');
+                hW[a] = HammingWeight(a);
+                dict[blocks] = 0;
+            }
+                         
+            //словарь частот
+            int count = len / k;
+            string s;
+            bool[] mas = new bool[k];
+            for (int j = 0; j < count; ++j)
+            {
+                for (int i = 0; i < k; ++i)
+                    mas[i] = arr[k * j + i];
+                s = BoolArToString(mas);       
+                dict[s]++;               
+            }
+
+            //по алгоритму
+            double p = ones / arr.Length;
+            double sum = 0;
+            for (int value = 0; value < Math.Pow(2, k); value++)
+            {
+                int W = HammingWeight(value);
+                double prob = Math.Pow(p, W) * Math.Pow(1 - p, k - W);
+                double E = prob * arr.Length / k;
+                double cval = dict[Convert.ToString(value, 2).PadLeft(k, '0')];
+                sum += Math.Pow(cval - E, 2) / E;
+            }
+
+            double delta2 = FInv(1 - alpha, (int)Math.Pow(2,k)-1);                
+            Console.WriteLine("ChiSqK= " + sum);
+            Console.WriteLine("Размер блока k = " + k);
+            Console.WriteLine("Delta= " + delta2);
+            Console.WriteLine("alpha=" + alpha);
+            if (sum < delta2)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("H0 (ChiSqK < delta, гипотеза о независимости принята)");
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("H1 (ChiSq > delta, гипотеза о независимости  не принята)");
+                Console.ResetColor();
+            }            
         }
+        
         /// <summary>
         /// Метод инициализирует словарь-параметр шестиграммами в качестве ключей.
         /// </summary>
-        /// <param name="dict">Словарь-параметр</param>        
-        /// <returns></returns>
+        /// <param name="dict">Словарь-параметр</param>           
         private static void LoadDictionary(Dictionary<string, int> dict)
         {
             for (int i = 0; i < 64; ++i)
@@ -380,6 +467,7 @@ namespace TestingLib
             }
         }
         static string[] grams = new string[64];
+        //заполнение массива шестиграммами при инициализациии класса
         static Tests()
         {
             for (byte a = 0; a < 64; a++)
@@ -388,6 +476,7 @@ namespace TestingLib
             }
         }
 
+        //массив битов в строку
         private static string BoolArToString(bool[] mas)
         {
             string str = "";
@@ -395,8 +484,9 @@ namespace TestingLib
                 str += (mas[i] == true ? 1 : 0);
             return str;
         }
+
         /// <summary>
-        /// Тест хи-квадрат по шестиграммам
+        /// Тест хи-квадрат по шестиграммам (тест на случайность)
         /// </summary>
         /// <param name="len">Длина тестируемой подпоследовательности</param>
         /// <param name="alpha">Уровень значимости</param>
