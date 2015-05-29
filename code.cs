@@ -9,6 +9,7 @@ namespace DiplomaOscil
 {
     class Program
     {
+        static string VER = "v0.3";
         static void WriteBitsFile(BitArray bits, StreamWriter s)
         {
             foreach (bool b in bits)
@@ -20,13 +21,24 @@ namespace DiplomaOscil
                 Console.Write(b ? 1 : 0);
             Console.WriteLine("\n");
         }
+        static double freq = 0.5;
         static void ManyOs()
         {
-            Console.WriteLine("Input sequence length:");
-            int length = Convert.ToInt32(Console.ReadLine());
-
+            int length;
+            try
+            {
+                Console.WriteLine("Input sequence length:");
+                length = Convert.ToInt32(Console.ReadLine());
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.Beep();
+                Console.WriteLine("Завершение работы функции");
+                return;
+            }
             //START MANY OSCILATORS
-            double freq = 0.5;
+            //freq = 0.5;
             StreamReader r = new StreamReader("input.txt");
             int cq = Convert.ToInt32(r.ReadLine());
             double[] ts = new double[cq];
@@ -38,6 +50,7 @@ namespace DiplomaOscil
                 sigs[i] = Convert.ToDouble(r.ReadLine());
             }
             r.Close();
+            //заккоментированы строчки вывода дополнительной информации в файлы
             //StreamWriter[] streamwriters = new StreamWriter[cq];
             //StreamWriter[] streamwritersB = new StreamWriter[cq];
             Oscil[] oscils = new Oscil[cq];
@@ -52,7 +65,7 @@ namespace DiplomaOscil
                 oscils[i] = new Oscil(ts[i], sigs[i], freq);
                 try
                 {
-                    Console.Title = "Super-mega Oscilator-generator v0.666 -- doing oscil #" + (i + 1);
+                    Console.Title = "Oscilator-generator " + VER + " -- doing oscil #" + (i + 1);
                     //bas[i] = oscils[i].Oscilate(streamwriters[i], length);
                     bas[i] = oscils[i].Oscilate(length);
                     //Console.WriteLine("Oscillator #" + (i + 1) + " done!");
@@ -62,7 +75,7 @@ namespace DiplomaOscil
                 {
                     Console.WriteLine(e.Message);
                     Console.Beep();
-                    Console.WriteLine("Завершение работы функции");                   
+                    Console.WriteLine("Завершение работы функции");
                     return;
                 }
                 finally
@@ -78,9 +91,9 @@ namespace DiplomaOscil
                 res = res.Xor(bas[i]);
             }
             DateTime finish = DateTime.Now;
-            Console.Title = "Super-mega Oscilator-generator v0.666";
+            Console.Title = "Oscilator-generator " + VER;
             Console.WriteLine("Result sequence of {0} bits is ready! Writing to file...", res.Length);
-            StreamWriter asd = new StreamWriter("seq.txt");
+            StreamWriter asd = new StreamWriter("seq" + finish.Hour + "-" + finish.Minute + "-" + finish.Second + ".txt");
             //WriteBits(res);            
             WriteBitsFile(res, asd);
             asd.Close();
@@ -92,31 +105,33 @@ namespace DiplomaOscil
             Console.ResetColor();
 
             Console.WriteLine("***HEALTH TESTS***");
-            //MONOBIT
-            Console.WriteLine("===========MONOBIT===========");
-            Tests.MonoBit(res, 0.01);
 
             //ChiSq-6
             Console.WriteLine("===========ChiSq-6===========");
-            int N = res.Length;
 
             Dictionary<string, int>[] suppDicts = new Dictionary<string, int>[cq];
             for (int j = 0; j < cq; ++j)
             {
                 Console.WriteLine("Oscillator #" + (j + 1));
                 Console.WriteLine();
-                suppDicts[j] = Tests.ChiSq(N, 0.05, bas[j]);
+                suppDicts[j] = Tests.ChiSq(0.05, bas[j]);
                 Console.WriteLine();
             }
 
             Dictionary<string, int> mainDict = new Dictionary<string, int>();
+            Console.ForegroundColor = ConsoleColor.Blue;
             Console.WriteLine("Result sequence:");
+            Console.ResetColor();
             Console.WriteLine();
-            mainDict = Tests.ChiSq(N, 0.05, res);
-            Console.WriteLine();
-
+            Tests.MonoBit(res, 0.01);
+            mainDict = Tests.ChiSq(0.05, res);
+            Tests.ChiSqK(0.001, res);
+            Tests.ChiSqStab(res);
+            Console.WriteLine("Оценка минимальной энтропии: {0:f3} на бит", Tests.MinEntrBound(res));
             //таблица для ТеХ'а
-            StreamWriter fr = new StreamWriter("tab.txt");
+            Console.WriteLine("Создание файла с выходной таблицей...");
+            StreamWriter fr = new StreamWriter("ChiSqTabTex.txt");
+            fr.WriteLine("Теоретическое количество каждой из шестиграмм -- {0}", length / 6 / 64);
             fr.Write("\\begin{longtable}{|l|");
             for (int j = 0; j < cq; ++j)
                 fr.Write("l|");
@@ -143,20 +158,42 @@ namespace DiplomaOscil
         {
             try
             {
-                Console.WriteLine("Input sequence length:");
-                int length = Convert.ToInt32(Console.ReadLine());
+                int length;
+                try
+                {
+                    Console.WriteLine("Input sequence length:");
+                    length = Convert.ToInt32(Console.ReadLine());
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    Console.Beep();
+                    Console.WriteLine("Завершение работы функции");
+                    return;
+                }
+                //ПАРАМЕТРЫ
                 Oscil a = new Oscil(1.0, 0.16, 0.01);
+                DateTime start = DateTime.Now;
                 BitArray res = a.IntelOscillate(length);
+                DateTime finish = DateTime.Now;
+                TimeSpan genTime = finish - start;
                 Console.WriteLine("Result sequence of {0} bits is ready! Writing to file...", res.Length);
-                StreamWriter asd = new StreamWriter("seqI.txt");
+                StreamWriter asd = new StreamWriter("seqI" + finish.Hour + "-" + finish.Minute + "-" + finish.Second + ".txt");
                 //WriteBits(res);            
                 WriteBitsFile(res, asd);
                 asd.Close();
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("The approximate speed of generation was {0:f3} bps", length / genTime.TotalSeconds);
+                Console.WriteLine();
+                Console.ForegroundColor = ConsoleColor.Blue;
+                Console.WriteLine("Result sequence:\n");
+                Console.ResetColor();
                 Tests.MonoBit(res, 0.01);
-                int N = res.Length;
                 Dictionary<string, int> mainDict = new Dictionary<string, int>();
-                Console.WriteLine("Результирующая последовательность:");
-                mainDict = Tests.ChiSq(N, 0.05, res);
+                mainDict = Tests.ChiSq(0.05, res);
+                Tests.ChiSqK(0.001, res);
+                Tests.ChiSqStab(res);
+                Console.WriteLine("Оценка минимальной энтропии: {0:f3} на бит", Tests.MinEntrBound(res));
                 Console.WriteLine();
             }
             catch (Exception e)
@@ -171,13 +208,13 @@ namespace DiplomaOscil
 
         static void Main()
         {
-            Console.Title = "Super-mega Oscilator-generator v0.666";
+            Console.Title = "Oscilator-generator " + VER;
             Console.WriteLine("Добро пожаловать в программу моделирования генераторов случайных чисел");
             string mode;
 
             while (true)
             {
-                Console.WriteLine("МЕНЮ\n1. Генератор many-XOR\n2. Генератор Intel\n0. Выход");
+                Console.WriteLine("МЕНЮ\n1. Генератор many-XOR (текущая частота считывания {0})\n2. Генератор Intel\n3. Изменить частоту в методе 1\n0. Выход", freq);
                 mode = Console.ReadLine();
                 switch (mode)
                 {
@@ -192,6 +229,18 @@ namespace DiplomaOscil
                         Console.WriteLine("Press any key to continue...");
                         Console.ReadLine();
                         Console.Clear();
+                        break;
+                    case "3":
+                        Console.WriteLine("Введите новую частоту");
+                        try
+                        {
+                            freq = Convert.ToDouble(Console.ReadLine());
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e.Message);
+                            Console.WriteLine("Частота не изменена");
+                        }
                         break;
                     case "0":
                         Console.WriteLine("Инициирован выход из программы\nPress any key to exit...");

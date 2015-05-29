@@ -18,6 +18,7 @@ namespace TestingLib
             this.m = m;
             this.sigma = sigma;
         }
+
         /// <summary>
         /// Метод генерации массива нормально распределенных величин с параметрами объекта
         /// </summary>
@@ -44,7 +45,7 @@ namespace TestingLib
                 if (i < n - 1)
                 {
                     array[i + 1] = m + sigma * y * r;
-                    if (array[i+1] <= 0)
+                    if (array[i + 1] <= 0)
                         throw new Exception("Логическая ошибка в моделировании осциллятора, проверьте входные параметры");
                 }
             }
@@ -56,15 +57,16 @@ namespace TestingLib
     /// Класс, моделирующий осциллятор
     /// </summary>
     public class Oscil
-    {        
+    {
         double freq;
         public double time, sigma;
         public Oscil(double t, double sigma, double freq)
-        {            
+        {
             this.time = t;
             this.sigma = sigma;
             this.freq = freq;
         }
+
         /// <summary>
         /// Поиск интервала, в который попадает величина, начиная с определенной позиции в массиве
         /// </summary>
@@ -91,6 +93,7 @@ namespace TestingLib
             }
             return num;
         }
+
         /// <summary>
         /// Метод моделирования процесса осциллирования с записью в файл значений длин тактов осциллятора
         /// </summary>
@@ -118,7 +121,7 @@ namespace TestingLib
             }
             for (int i = 1; i < takts.Length; ++i)
             {
-                str.WriteLine(i + ") " + takts[i - 1] + "+" + (ar[i - 1]) + "=" + takts[i]);                
+                str.WriteLine(i + ") " + takts[i - 1] + "+" + (ar[i - 1]) + "=" + takts[i]);
             }
             double now = freq;                      //частота считываний
             int count = length;
@@ -137,6 +140,7 @@ namespace TestingLib
             BitArray osc = new BitArray(bits);
             return osc;
         }
+
         /// <summary>
         /// Метод моделирования процесса осциллирования
         /// </summary>        
@@ -160,11 +164,11 @@ namespace TestingLib
                     Array.Resize(ref takts, i + 1);
                     break;
                 }
-            }            
+            }
             double now = freq;                      //частота считываний            
             int count = length;
             bool[] bits = new bool[count];
-            int pos, where=1;
+            int pos, where = 1;
             for (int j = 0; j < count; ++j)
             {
                 pos = FindRead(now, takts, ref where);
@@ -177,26 +181,30 @@ namespace TestingLib
             BitArray osc = new BitArray(bits);
             return osc;
         }
-        
-        //working on IT НЕ ХВАТАЕТ ПАМЯТИ ДЛЯ МАЛЕНЬКИХ ЧАСТОТ
+
+        /// <summary>
+        /// Метод моделирования генератора по двухосцилляторной схеме
+        /// </summary>
+        /// <param name="length">Длина выходной последовательности</param>
+        /// <returns>Массив битов, выданный генератором</returns>
         public BitArray IntelOscillate(int length)
         {
             //double workTime = length * time * 2;
             Gauss gen = new Gauss(time, sigma);
-            int n = length;                
+            int n = length;
             double[] ar = gen.GenArray(n);
             double[] takts = new double[n];
             takts[0] = ar[0];
             for (int i = 1; i < n; ++i)
             {
-                takts[i] = takts[i - 1] + ar[i];                
-            }            
-            
-            double now;                      
+                takts[i] = takts[i - 1] + ar[i];
+            }
+
+            double now;
             int count = length;
             bool[] bits = new bool[count];
             int pos;
-            
+
             for (int j = 0; j < count; ++j)
             {
                 now = takts[j];
@@ -211,8 +219,13 @@ namespace TestingLib
         }
     }
 
+    /// <summary>
+    /// Набор тестов
+    /// </summary>
     public static class Tests
     {
+        //MONOBIT
+
         // for monobit
         static double FrequencyTest(double sum, long length)
         {
@@ -240,6 +253,19 @@ namespace TestingLib
         {
             return 1 - ErrorFunction(x);
         }
+
+        //подсчёт количества единиц в наборе данных
+        private static int Ones(BitArray arr)
+        {
+            int ones = 0;
+            for (int i = 0; i < arr.Length; ++i)
+            {
+                if (arr[i] == true)
+                    ones++;
+            }
+            return ones;
+        }
+
         /// <summary>
         /// Тест частот (монобит)
         /// </summary>
@@ -247,12 +273,7 @@ namespace TestingLib
         /// <param name="alpha">Уровень значимости, рекомендован 0.01</param>
         public static void MonoBit(BitArray res, double alpha)
         {
-            double ones = 0;
-            for (int i = 0; i < res.Length; ++i)
-            {
-                if (res[i] == true)
-                    ones++;
-            }
+            double ones = Ones(res);
             double zeros = res.Length - (int)ones;
             double pval = FrequencyTest(ones - zeros, res.Length);
             Console.WriteLine("Percentage of 1: " + ones / res.Length + "   p-value: " + pval);
@@ -261,14 +282,16 @@ namespace TestingLib
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("H1 monobit");
                 Console.ResetColor();
-            }                
+            }
             else
             {
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine("H0 monobit");
                 Console.ResetColor();
-            }                
+            }
         }
+
+        //CHISQARE
 
         /// <summary>
         /// Этот метод вычисляет обратную функцию распредения для Гауссовского распределения
@@ -346,10 +369,146 @@ namespace TestingLib
         }
 
         /// <summary>
+        /// Вес Хэмминга для положительных чисел
+        /// </summary>
+        /// <param name="value">Значение, для которого вычисляется вес</param>
+        /// <returns>Вес</returns        
+        private static int HammingWeight(int value)
+        {
+            int sum = 0;
+            while (value > 0)
+            {
+                sum += value & 0x01;
+                value >>= 1;
+            }
+            return sum;
+        }
+
+        /// <summary>
+        /// Хи-квадрат тест на независимость (из рекомендаций NIST)
+        /// </summary>
+        /// <param name="len">Длина тестируемой подпоследовательности</param>
+        /// <param name="alpha">Уровень значимости</param>
+        /// <param name="arr">Тестируемая последовательность</param>
+        public static void ChiSqK(double alpha, BitArray arr)
+        {
+            //if (len < arr.Length)
+            //    throw new Exception("Длина подпоследовательности больше длины последовательности");
+
+            //тут определяется длина блоков
+            double ones = Ones(arr);
+            double zeros = arr.Length - (int)ones;
+            double cx = Math.Min(ones, zeros);
+            int k = 2;
+            while (k < 12 && Math.Pow(cx / arr.Length, k) > 5 / arr.Length)
+                k++;
+            --k;
+
+            //тут создаются словари с текствым представлением всех блоков длины k и с весами Хэмминга для них
+            Dictionary<int, int> hW = new Dictionary<int, int>();
+            Dictionary<string, int> dict = new Dictionary<string, int>();
+            for (int a = 0; a < Math.Pow(2, k); a++)
+            {
+                string blocks = Convert.ToString(a, 2).PadLeft(k, '0');
+                hW[a] = HammingWeight(a);
+                dict[blocks] = 0;
+            }
+
+            //словарь частот
+            int count = arr.Length / k;
+            string s;
+            bool[] mas = new bool[k];
+            for (int j = 0; j < count; ++j)
+            {
+                for (int i = 0; i < k; ++i)
+                    mas[i] = arr[k * j + i];
+                s = BoolArToString(mas);
+                dict[s]++;
+            }
+
+            //по алгоритму
+            double p = ones / arr.Length;
+            double sum = 0;
+            for (int value = 0; value < Math.Pow(2, k); value++)
+            {
+                int W = HammingWeight(value);
+                double prob = Math.Pow(p, W) * Math.Pow(1 - p, k - W);
+                double E = prob * arr.Length / k;
+                double cval = dict[Convert.ToString(value, 2).PadLeft(k, '0')];
+                sum += Math.Pow(cval - E, 2) / E;
+            }
+
+            double delta2 = FInv(1 - alpha, (int)Math.Pow(2, k) - 1);
+            Console.WriteLine("ChiSq= " + sum);
+            Console.WriteLine("Размер блока k = " + k);
+            Console.WriteLine("Delta= " + delta2);
+            Console.WriteLine("alpha=" + alpha);
+            if (sum < delta2)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("H0 (ChiSq < delta, гипотеза о независимости принята)");
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("H1 (ChiSq > delta, гипотеза о независимости  не принята)");
+                Console.ResetColor();
+            }
+        }
+
+        /// <summary>
+        /// Хи-квадрат тест однородности распределения по рекомендациям NIST
+        /// </summary>
+        /// <param name="arr">Тестируемая последовательность</param>
+        public static void ChiSqStab(BitArray arr)
+        {
+            double p = (double)Ones(arr) / arr.Length;
+            int Nd = arr.Length / 10;
+            double Ed = p * Nd;
+            double sum = 0;
+            for (int d = 0; d < 10; d++)
+            {
+                BitArray part = new BitArray(Nd);
+                for (int i = 0; i < Nd; i++)
+                {
+                    part[i] = arr[d * Nd + i];
+                }
+                double Cd = Ones(part);
+                sum += Math.Pow(Cd - Ed, 2) / Ed;
+            }
+            double delta = 27.9;
+            Console.WriteLine("ChiSq= " + sum);
+            Console.WriteLine("Delta= " + delta);
+            Console.WriteLine("alpha = 0.001 (NIST reccomendation)");
+            if (sum < delta)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("H0 (ChiSq < delta, гипотеза об однородности принята)");
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("H1 (ChiSq > delta, гипотеза об однородности  не принята)");
+                Console.ResetColor();
+            }
+        }
+
+        public static double MinEntrBound(BitArray arr)
+        {
+            int ones = Ones(arr);
+            int Cmax = Math.Max(ones, arr.Length - ones);
+            double pmax = (double)Cmax / arr.Length;
+            double Cbound = Cmax + 2.3 * Math.Sqrt(arr.Length * pmax * (1 - pmax));
+            double H = -Math.Log(Cbound / arr.Length, 2);
+            return Math.Min(1, H);
+        }
+
+        /// <summary>
         /// Метод инициализирует словарь-параметр шестиграммами в качестве ключей.
         /// </summary>
-        /// <param name="dict">Словарь-параметр</param>        
-        /// <returns></returns>
+        /// <param name="dict">Словарь-параметр</param>           
         private static void LoadDictionary(Dictionary<string, int> dict)
         {
             for (int i = 0; i < 64; ++i)
@@ -358,6 +517,7 @@ namespace TestingLib
             }
         }
         static string[] grams = new string[64];
+        //заполнение массива шестиграммами при инициализациии класса
         static Tests()
         {
             for (byte a = 0; a < 64; a++)
@@ -366,6 +526,7 @@ namespace TestingLib
             }
         }
 
+        //массив битов в строку
         private static string BoolArToString(bool[] mas)
         {
             string str = "";
@@ -373,20 +534,21 @@ namespace TestingLib
                 str += (mas[i] == true ? 1 : 0);
             return str;
         }
+
         /// <summary>
-        /// Тест хи-квадрат по шестиграммам
+        /// Тест хи-квадрат по шестиграммам (тест на случайность)
         /// </summary>
         /// <param name="len">Длина тестируемой подпоследовательности</param>
         /// <param name="alpha">Уровень значимости</param>
         /// <param name="arr">Тестируемый массив</param>
         /// <returns>Словарь частот шестиграмм</returns>
-        public static Dictionary<string, int> ChiSq(int len, double alpha, BitArray arr)
+        public static Dictionary<string, int> ChiSq(double alpha, BitArray arr)
         {
             //if (len < arr.Length)
             //    throw new Exception("Длина подпоследовательности больше длины последовательности");
             Dictionary<string, int> dict = new Dictionary<string, int>();
             LoadDictionary(dict);
-            int count = len / 6;
+            int count = arr.Length / 6;
             string s;
             bool[] mas = new bool[6];
             for (int k = 0; k < count; ++k)
@@ -399,7 +561,7 @@ namespace TestingLib
                 else
                     dict[s] = 1;
             }
-            double x = (double)len / 6 / Math.Pow(2, 6);
+            double x = (double)arr.Length / 6 / Math.Pow(2, 6);
             double delta2 = FInv(1 - alpha, 63);
             double sum = 0;
             foreach (KeyValuePair<string, int> kvp in dict)
