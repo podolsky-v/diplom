@@ -1,2 +1,2 @@
-# diplom
-code for diploma work
+# Graduation work
+Source files for graduation work. Modelling of physical RNG and statistical testing.
