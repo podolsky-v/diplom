@@ -10,6 +10,7 @@ namespace DiplomaOscil
     class Program
     {
         static string VER = "v0.3";
+        static bool testsIsTrue = false;
         static void WriteBitsFile(BitArray bits, StreamWriter s)
         {
             foreach (bool b in bits)
@@ -110,12 +111,15 @@ namespace DiplomaOscil
             Console.WriteLine("===========ChiSq-6===========");
 
             Dictionary<string, int>[] suppDicts = new Dictionary<string, int>[cq];
-            for (int j = 0; j < cq; ++j)
+            if (testsIsTrue)
             {
-                Console.WriteLine("Oscillator #" + (j + 1));
-                Console.WriteLine();
-                suppDicts[j] = Tests.ChiSq(0.05, bas[j]);
-                Console.WriteLine();
+                for (int j = 0; j < cq; ++j)
+                {
+                    Console.WriteLine("Oscillator #" + (j + 1));
+                    Console.WriteLine();
+                    suppDicts[j] = Tests.ChiSq(0.05, bas[j]);
+                    Console.WriteLine();
+                }
             }
 
             Dictionary<string, int> mainDict = new Dictionary<string, int>();
@@ -127,30 +131,33 @@ namespace DiplomaOscil
             mainDict = Tests.ChiSq(0.05, res);
             Tests.ChiSqK(0.001, res);
             Tests.ChiSqStab(res);
-            Console.WriteLine("Оценка минимальной энтропии: {0:f3} на бит", Tests.MinEntrBound(res));
+            Console.WriteLine("Оценка минимальной энтропии: {0:f5} на бит", Tests.MinEntrBound(res));
             //таблица для ТеХ'а
-            Console.WriteLine("Создание файла с выходной таблицей...");
-            StreamWriter fr = new StreamWriter("ChiSqTabTex.txt");
-            fr.WriteLine("Теоретическое количество каждой из шестиграмм -- {0}", length / 6 / 64);
-            fr.Write("\\begin{longtable}{|l|");
-            for (int j = 0; j < cq; ++j)
-                fr.Write("l|");
-            fr.WriteLine("l|}");
-            fr.WriteLine("\\hline");
-            fr.Write("sixgr");
-            for (int j = 0; j < cq; ++j)
-                fr.Write(" & m={0},si={1}", oscils[j].time, oscils[j].sigma);
-            fr.WriteLine(" & all\\\\");
-            foreach (var pair in mainDict.OrderBy(pair => pair.Key))
+            if (testsIsTrue)
             {
-                fr.Write(pair.Key);
+                Console.WriteLine("Создание файла с выходной таблицей...");
+                StreamWriter fr = new StreamWriter("ChiSqTabTex.txt");
+                fr.WriteLine("Теоретическое количество каждой из шестиграмм -- {0}", length / 6 / 64);
+                fr.Write("\\begin{longtable}{|l|");
                 for (int j = 0; j < cq; ++j)
-                    fr.Write(" & {0}", suppDicts[j][pair.Key]);
-                fr.WriteLine(" & {0}\\\\", mainDict[pair.Key]);
+                    fr.Write("l|");
+                fr.WriteLine("l|}");
                 fr.WriteLine("\\hline");
+                fr.Write("sixgr");
+                for (int j = 0; j < cq; ++j)
+                    fr.Write(" & m={0},si={1}", oscils[j].time, oscils[j].sigma);
+                fr.WriteLine(" & all\\\\");
+                foreach (var pair in mainDict.OrderBy(pair => pair.Key))
+                {
+                    fr.Write(pair.Key);
+                    for (int j = 0; j < cq; ++j)
+                        fr.Write(" & {0}", suppDicts[j][pair.Key]);
+                    fr.WriteLine(" & {0}\\\\", mainDict[pair.Key]);
+                    fr.WriteLine("\\hline");
+                }
+                fr.WriteLine("\\end{longtable}");
+                fr.Close();
             }
-            fr.WriteLine("\\end{longtable}");
-            fr.Close();
             //END MANY OSCILLATORS
         }
 
@@ -193,7 +200,7 @@ namespace DiplomaOscil
                 mainDict = Tests.ChiSq(0.05, res);
                 Tests.ChiSqK(0.001, res);
                 Tests.ChiSqStab(res);
-                Console.WriteLine("Оценка минимальной энтропии: {0:f3} на бит", Tests.MinEntrBound(res));
+                Console.WriteLine("Оценка минимальной энтропии: {0:f5} на бит", Tests.MinEntrBound(res));
                 Console.WriteLine();
             }
             catch (Exception e)
@@ -214,7 +221,7 @@ namespace DiplomaOscil
 
             while (true)
             {
-                Console.WriteLine("МЕНЮ\n1. Генератор many-XOR (текущая частота считывания {0})\n2. Генератор Intel\n3. Изменить частоту в методе 1\n0. Выход", freq);
+                Console.WriteLine("МЕНЮ\n1. Генератор по многоосцилляторной схеме (текущая частота считывания {0})\n2. Генератор Intel\n3. Изменить настройки многоосцилляторного генератора\n0. Выход", freq);
                 mode = Console.ReadLine();
                 switch (mode)
                 {
@@ -240,6 +247,20 @@ namespace DiplomaOscil
                         {
                             Console.WriteLine(e.Message);
                             Console.WriteLine("Частота не изменена");
+                        }
+                        Console.WriteLine("Тестировать ли составляющие осцилляторы y/n?");
+                        mode = Console.ReadLine();
+                        switch (mode)
+                        {
+                            case "y":
+                                testsIsTrue = true;
+                                break;
+                            case "n":
+                                testsIsTrue = false;
+                                break;
+                            default:
+                                Console.WriteLine("Недопустимый ответ");
+                                break;
                         }
                         break;
                     case "0":
